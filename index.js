@@ -82,10 +82,6 @@ const toPdf = async (title, html) => {
     return filename;
 };
 
-app.listen(port, () => {
-    console.log(`webpage to kindle app listening on port ${port}`)
-})
-
 const sendEmail = (filename) => {
 
     // Create a transporter using Gmail SMTP
@@ -124,3 +120,10 @@ const sendEmail = (filename) => {
         }
     });
 }
+
+
+
+
+app.listen(port, () => {
+    console.log(`webpage to kindle app listening on port ${port}`)
+})
