@@ -1,6 +1,7 @@
 
 require('dotenv').config();
-const express = require('express')
+const express = require('express');
+const basicAuth = require('basic-auth');
 const puppeteer = require('puppeteer');
 var { Readability } = require('@mozilla/readability');
 const jsdom = require("jsdom");
@@ -15,6 +16,22 @@ const { json } = require('express');
 
 const app = express()
 const port = 3000
+
+// Middleware for basic authentication
+const authenticate = (req, res, next) => {
+    const credentials = basicAuth(req);
+
+    if (!credentials || credentials.name !== process.env.AUTH_USERNAME || credentials.pass !== process.env.AUTH_PASSWORD) {
+        res.set('WWW-Authenticate', 'Basic realm="Authentication required"');
+        return res.status(401).send('Authentication required.');
+    }
+
+    next();
+};
+
+// Apply authentication middleware to all routes
+app.use(authenticate);
+
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -75,8 +92,8 @@ const sendEmail = (filename) => {
     const transporter = nodemailer.createTransport({
         service: process.env.SMTP_SERVER,
         auth: {
-            user: process.env.USERNAME,
-            pass: process.env.PASSWORD,
+            user: process.env.SMTP_USERNAME,
+            pass: process.env.SMTP_PASSWORD,
         },
     });
 
