@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Send Webpage to Kindle</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .msg-err, .msg-info {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .msg-err {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+
+        .msg-info {
+            color: #0c5460;
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="container">
+        <h1>Send Webpage to Kindle</h1>
+
+        <form id="urlForm">
+            <div class="msg-err"></div>
+            <div class="msg-info"></div>
+            <label for="urlInput">URL:</label>
+            <input type="text" id="urlInput" name="url" required>
+            <button type="button" onclick="sendAjaxRequest()">Submit</button>
+        </form>
+    </div>
+
+    <script>
+        function sendAjaxRequest() {
+            const urlInput = document.getElementById('urlInput').value;
+            const msgErr = document.querySelector('.msg-err');
+            const msgInfo = document.querySelector('.msg-info');
+            const input = document.getElementById('urlInput');
+
+            // Reset messages
+            msgErr.style.display = 'none';
+            msgInfo.style.display = 'none';
+
+            // Show loading message
+            msgInfo.textContent = 'Please wait...';
+            msgInfo.style.display = 'inline-block';
+
+            // Make an AJAX request using Fetch API
+            fetch(`/send?url=${encodeURIComponent(urlInput)}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                msgInfo.style.display = 'none';
+                if (data.error) {
+                    // Show error message
+                    msgErr.textContent = 'Error: ' + data.message;
+                    msgErr.style.display = 'inline-block';
+                } else {
+                    // Show success message
+                    msgInfo.textContent = 'Success: ' + data.message;
+                    msgInfo.style.display = 'inline-block';
+                    input.value = '';
+                }
+                console.log('Response:', data);
+            })
+            .catch(error => {
+                // Handle errors
+                console.error('Error:', error);
+            });
+
+        }
+    </script>
+
+</body>
+</html>
