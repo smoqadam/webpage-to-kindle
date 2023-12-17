@@ -45,13 +45,14 @@ app.get('/send', async (req, res) => {
         let response = await fetch(url);
         let body = await response.text();
         let article = readable(body);
-        let filename = await toPdf(article.title, article.content);
+        let filename = await toPdf(article.title, article.content, url);
 
-        sendEmail(filename);
+        // sendEmail(filename);
         res.send(JSON.stringify({
             'error': false,
             'message': 'success',
         }));
+        console.log('done!');
     } catch (e) {
         console.log({e});
         res.send(JSON.stringify({
@@ -68,11 +69,11 @@ const readable = (html) => {
     return article
 }
 
-const toPdf = async (title, html) => {
+const toPdf = async (title, html, url) => {
     const browser = await puppeteer.launch();
 
     const page = await browser.newPage();
-
+    html = '<h1><a href="'+url+'">'+title+'</a></h1>'+html;
     await page.setContent(html);
     const filename = 'docs/' + title + '.pdf';
     await page.pdf({ path: filename, format: 'A5' });
