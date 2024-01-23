@@ -12,10 +12,27 @@ const fs = require('fs');
 const { basename } = require('path');
 const { title } = require('process');
 const { json } = require('express');
-
+const sqlite3 = require('sqlite3').verbose();
 
 const app = express()
 const port = 3000
+
+// Initialize SQLite database
+const db = new sqlite3.Database('./pdfData.db', (err) => {
+    if (err) {
+        console.error(err.message);
+    }
+    console.log('Connected to the SQLite database.');
+
+    // Create table for PDF data
+    db.run(`CREATE TABLE IF NOT EXISTS pdf_data (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        url TEXT,
+        filepath TEXT
+    )`);
+});
+
 
 // Middleware for basic authentication
 const authenticate = (req, res, next) => {
@@ -39,7 +56,7 @@ app.get('/', (req, res) => {
 
 app.get('/send', async (req, res) => {
     try {
-        send(req.query.url);
+        await send(req.query.url);
         res.send(JSON.stringify({
             'error': false,
             'message': 'success',
@@ -53,6 +70,43 @@ app.get('/send', async (req, res) => {
     }
 })
 
+// Route for getting PDF list
+app.get('/pdfs', (req, res) => {
+    db.all("SELECT * FROM pdf_data", [], (err, rows) => {
+        if (err) {
+            throw err;
+        }
+        res.json(rows);
+    });
+});
+
+app.get('/delete/:id', (req, res) => {
+    db.get(`SELECT filepath FROM pdf_data WHERE id = ?`, req.params.id, (err, row) => {
+        if (err) {
+            return res.status(500).send({ message: 'Error fetching file path', error: err.message });
+        }
+
+        if (row) {
+            fs.unlink(row.filepath, (err) => {
+                if (err) {
+                    // return res.status(500).send({ message: 'Error deleting file', error: err.message });
+                    console.error(err);
+                }
+
+            });
+            
+            db.run(`DELETE FROM pdf_data WHERE id = ?`, req.params.id, function(err) {
+                if (err) {
+                    return res.status(500).send({ message: 'Error deleting database record', error: err.message });
+                }
+                res.send({ message: 'Successfully deleted', changes: this.changes });
+            });
+            
+        } else {
+            res.status(404).send({ message: 'PDF not found' });
+        }
+    });
+});
 
 const readable = (html) => {
     const doc = new JSDOM(html);
@@ -66,7 +120,7 @@ const toPdf = async (title, html, url) => {
     const page = await browser.newPage();
     html = '<h1><a href="' + url + '">' + title + '</a></h1>' + html;
     await page.setContent(html);
-    const filename = 'docs/' + title + '.pdf';
+    const filename = 'docs/' + title.replaceAll(' ', '-') + '.pdf';
     await page.pdf({ path: filename, format: 'A5' });
 
     await browser.close();
@@ -79,7 +133,13 @@ const send = async (url) => {
     let body = await response.text();
     let article = readable(body);
     let filename = await toPdf(article.title, article.content, url);
-
+    // Save to database
+    db.run(`INSERT INTO pdf_data (title, url, filepath) VALUES (?, ?, ?)`, [article.title, url, filename], function(err) {
+        if (err) {
+            return console.error(err.message);
+        }
+        console.log(`A row has been inserted with rowid ${this.lastID}`);
+    });
     sendEmail(filename);
     console.log('done!');
 }

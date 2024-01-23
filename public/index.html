@@ -5,73 +5,104 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Send Webpage to Kindle</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
         #container {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
+    width: 80%;
+    margin: auto;
+    font-family: Arial, sans-serif;
+}
 
-        .msg-err, .msg-info {
-            display: none;
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 5px;
-            font-weight: bold;
-        }
+h1 {
+    color: #333;
+    text-align: center;
+}
 
-        .msg-err {
-            color: #721c24;
-            background-color: #f8d7da;
-            border: 1px solid #f5c6cb;
-        }
+form#urlForm {
+    margin-bottom: 20px;
+    text-align: center;
+}
 
-        .msg-info {
-            color: #0c5460;
-            background-color: #d1ecf1;
-            border: 1px solid #bee5eb;
-        }
+form#urlForm div.msg-err {
+    color: red;
+    margin: 10px 0;
+    width: 100%
+}
 
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
+form#urlForm div.msg-info {
+    color: green;
+    margin: 10px 0;
+    width: 100%
 
-        input {
-            width: 100%;
-            padding: 8px;
-            box-sizing: border-box;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
+}
 
-        button {
-            background-color: #007bff;
-            color: #fff;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
+form#urlForm label {
+    margin-right: 10px;
+}
 
-        button:hover {
-            background-color: #0056b3;
-        }
-    </style>
+form#urlForm input[type="text"] {
+    width: 300px;
+    padding: 8px;
+    margin-right: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+form#urlForm button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    background-color: #5cb85c;
+    color: white;
+    cursor: pointer;
+}
+
+form#urlForm button:hover {
+    background-color: #4cae4c;
+}
+
+table#pdfTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+table#pdfTable, 
+table#pdfTable th, 
+table#pdfTable td {
+    border: 1px solid #ddd;
+}
+
+table#pdfTable th, 
+table#pdfTable td {
+    text-align: left;
+    padding: 8px;
+}
+
+table#pdfTable th {
+    background-color: #f2f2f2;
+}
+
+table#pdfTable tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+table#pdfTable tr:hover {
+    background-color: #f1f1f1;
+}
+
+table#pdfTable td button {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    background-color: #d9534f;
+    color: white;
+    cursor: pointer;
+}
+
+table#pdfTable td button:hover {
+    background-color: #c9302c;
+}
+
+</style>
 </head>
 <body>
 
@@ -85,6 +116,20 @@
             <input type="text" id="urlInput" name="url" required>
             <button type="button" onclick="sendAjaxRequest()">Submit</button>
         </form>
+        <h1>PDF List</h1>
+        <table id="pdfTable">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>URL</th>
+                    <th>File Path</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- PDF rows will be added here -->
+            </tbody>
+        </table>
     </div>
 
     <script>
@@ -126,7 +171,9 @@
                     msgInfo.textContent = 'Success: ' + data.message;
                     msgInfo.style.display = 'inline-block';
                     input.value = '';
+
                 }
+                fetchPdfs();
                 console.log('Response:', data);
             })
             .catch(error => {
@@ -134,6 +181,42 @@
                 console.error('Error:', error);
             });
 
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchPdfs();
+        });
+
+        function fetchPdfs() {
+            fetch('/pdfs')
+                        .then(response => response.json())
+                        .then(data => {
+                            const tableBody = document.getElementById('pdfTable').querySelector('tbody');
+                            tableBody.innerHTML = ''; // Clear existing rows
+
+                            data.forEach(pdf => {
+                                const row = tableBody.insertRow();
+                                row.insertCell().textContent = pdf.title;
+                                row.insertCell().textContent = pdf.url;
+                                row.insertCell().textContent = pdf.filepath;
+                                
+                                const deleteButton = document.createElement('button');
+                                deleteButton.textContent = 'Delete';
+                                deleteButton.onclick = function() { deletePdf(pdf.id); };
+                                row.insertCell().appendChild(deleteButton);
+                            });
+                        });
+        }
+
+        function deletePdf(id) {
+            fetch(`/delete/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    // Reload PDF list
+                    fetchPdfs();
+                })
+                .catch(error => console.error('Error:', error));
         }
     </script>
 
