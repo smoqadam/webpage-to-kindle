@@ -38,23 +38,14 @@ app.get('/', (req, res) => {
 })
 
 app.get('/send', async (req, res) => {
-
     try {
-        let url = req.query.url;
-        console.log(req.query);
-        let response = await fetch(url);
-        let body = await response.text();
-        let article = readable(body);
-        let filename = await toPdf(article.title, article.content, url);
-
-        // sendEmail(filename);
+        send(req.query.url);
         res.send(JSON.stringify({
             'error': false,
             'message': 'success',
         }));
-        console.log('done!');
     } catch (e) {
-        console.log({e});
+        console.log({ e });
         res.send(JSON.stringify({
             'error': true,
             "message": e.message,
@@ -73,7 +64,7 @@ const toPdf = async (title, html, url) => {
     const browser = await puppeteer.launch();
 
     const page = await browser.newPage();
-    html = '<h1><a href="'+url+'">'+title+'</a></h1>'+html;
+    html = '<h1><a href="' + url + '">' + title + '</a></h1>' + html;
     await page.setContent(html);
     const filename = 'docs/' + title + '.pdf';
     await page.pdf({ path: filename, format: 'A5' });
@@ -82,6 +73,16 @@ const toPdf = async (title, html, url) => {
 
     return filename;
 };
+
+const send = async (url) => {
+    let response = await fetch(url);
+    let body = await response.text();
+    let article = readable(body);
+    let filename = await toPdf(article.title, article.content, url);
+
+    sendEmail(filename);
+    console.log('done!');
+}
 
 const sendEmail = (filename) => {
 
@@ -122,9 +123,13 @@ const sendEmail = (filename) => {
     });
 }
 
+var args = process.argv.slice(2);
+console.log(args);
+if (args[0] !== undefined) {
+    send(args[0]);
 
-
-
-app.listen(port, () => {
-    console.log(`webpage to kindle app listening on port ${port}`)
-})
+} else {
+    app.listen(port, () => {
+        console.log(`webpage to kindle app listening on port ${port}`)
+    })
+}
