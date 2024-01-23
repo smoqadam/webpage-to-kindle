@@ -45,6 +45,18 @@ FROM_EMAIL=
 #kindle email ends with @kindle.com
 TO_EMAIL=  
 ```
+Then run the following command and open http://localhost:3000:
+```
+node index.js
+```
+
+### Use CLI
+
+You can pass the article's URL as a CLI argument:
+
+```
+node index.js http://example.com/new-article
+```
 
 ### Screenshot
 
